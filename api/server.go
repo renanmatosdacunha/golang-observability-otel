@@ -1,13 +1,25 @@
 package api
 
-import "github.com/gin-gonic/gin"
+import (
+	"io"
+	"log/slog"
+
+	"github.com/gin-gonic/gin"
+)
 
 type Server struct {
 	router *gin.Engine
+	logger *slog.Logger
 }
 
-func NewServer() *Server {
-	server := &Server{}
+func NewServer(logger *slog.Logger) *Server {
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = io.Discard
+	gin.DefaultErrorWriter = io.Discard
+
+	server := &Server{
+		logger: logger,
+	}
 	router := gin.Default()
 
 	router.GET("/users", server.GetUser)
@@ -17,6 +29,7 @@ func NewServer() *Server {
 }
 
 func (server *Server) Start(address string) error {
+
 	return server.router.Run(address)
 }
 
