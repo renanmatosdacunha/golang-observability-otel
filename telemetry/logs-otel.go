@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
@@ -65,11 +64,14 @@ type OtelHandler struct {
 
 // Handle converte cada log do slog para o formato OTel.
 func (h *OtelHandler) Handle(ctx context.Context, rec slog.Record) error {
-	record := sdklog.NewRecord(rec.Time, rec.Message)
+	var record log.Record
+	record.SetTimestamp(rec.Time)
+	record.SetBody(log.StringValue(rec.Message))
 
 	// Adiciona os atributos do slog como atributos do OTel.
 	rec.Attrs(func(a slog.Attr) bool {
-		record.AddAttributes(attribute.String(a.Key, a.Value.String()))
+		// CORREÇÃO: Usar log.String em vez de attribute.String para criar o tipo correto de atributo.
+		record.AddAttributes(log.String(a.Key, a.Value.String()))
 		return true
 	})
 
