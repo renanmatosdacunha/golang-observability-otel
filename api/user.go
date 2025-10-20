@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -36,10 +37,10 @@ func (server *Server) GetUser(ctx *gin.Context) {
 	}
 
 	if req.Username != userOK.Username {
-		server.logger.Error(
-			"user not found",
-			slog.String("username:", req.Username),
-		)
+		//server.logger.Error("user not found", slog.String("username:", req.Username))
+		//server.logger.Error("user not found:", req.Username)
+		logMessage := fmt.Sprintf("user not found, username: %s", req.Username)
+		server.logger.Error(logMessage) // Não passa mais atributos aqui.
 		ctx.JSON(http.StatusNotFound, "Error not found")
 		return
 	}
