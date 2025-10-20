@@ -4,8 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/renanmatosdacunha/golang-observability-otel.git/api"
 	logs "github.com/renanmatosdacunha/golang-observability-otel.git/telemetry"
@@ -17,18 +15,20 @@ const (
 
 func main() {
 	// Cria um contexto que lida com sinais de interrupção (Ctrl+C) para um shutdown gracioso.
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
+	//ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	//defer cancel()
 
 	// Inicializa o logger do OpenTelemetry através do nosso pacote de logs.
-	logger, shutdown := logs.InitOtelLogging(ctx)
+	//logger, shutdown := logs.InitOtelLogging(ctx)
 	// Garante que a função de shutdown seja chamada no final para enviar todos os logs em buffer.
-	defer shutdown()
-
-	// Injeta o logger no servidor. O resto do código não sabe que o OTel existe.
+	//defer shutdown()
+	////////////////////////////////////////SIGN/////////////////////////////////////////////////
+	// Usa um contexto de fundo simples, uma vez que já não estamos a lidar com sinais.
+	ctx := context.Background()
+	logger, shutdownLogs := logs.InitOtelLogging(ctx)
+	defer shutdownLogs()
 	server := api.NewServer(logger)
 
-	// O log de arranque será agora processado pelo OtelHandler e formatado corretamente.
 	logger.Info("a iniciar o servidor", slog.String("address", serverAddress))
 
 	err := server.Start(serverAddress)

@@ -39,3 +39,39 @@ func main() {
 		log.Fatal("Cannot start server", err)
 	}
 }
+
+package main
+
+import (
+	"context"
+	"log/slog"
+	"os"
+
+	"github.com/renanmatosdacunha/golang-observability-otel.git/api"
+	"github.com/renanmatosdacunha/golang-observability-otel.git/logs"
+)
+
+const (
+	serverAddress = "0.0.0.0:8080"
+)
+
+func main() {
+	// Usa um contexto de fundo simples, uma vez que já não estamos a lidar com sinais.
+	ctx := context.Background()
+
+	// Inicializa o logger do OpenTelemetry.
+	logger, shutdownLogs := logs.InitOtelLogging(ctx)
+	// O defer para o shutdown do logger continua a ser importante para garantir que os logs em buffer são enviados.
+	defer shutdownLogs()
+
+	server := api.NewServer(logger)
+
+	logger.Info("a iniciar o servidor", slog.String("address", serverAddress))
+
+	// A chamada a server.Start() volta a ser a última coisa na função main.
+	// É uma chamada bloqueante, e o programa só terminará quando este processo for interrompido (ex: Ctrl+C).
+	if err := server.Start(serverAddress); err != nil {
+		logger.Error("não foi possível iniciar o servidor", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+}
