@@ -9,44 +9,46 @@ import (
 	"go.opentelemetry.io/otel/log/global"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0" // ATUALIZADO para uma versão mais recente
 )
 
 // InitOtelLogging configura o OpenTelemetry para gerar logs no formato OTLP/JSON.
 func InitOtelLogging(ctx context.Context) (*slog.Logger, func()) {
-	// 1. Configura o Recurso (Resource) que descreve a sua aplicação.
-	res, err := resource.Merge(resource.Default(),
-		resource.NewWithAttributes(semconv.SchemaURL,
+	// --- CORREÇÃO APLICADA AQUI ---
+	// Em vez de usar resource.Merge, criamos um novo recurso do zero.
+	// Isto também deteta os atributos padrão, mas de uma forma que evita conflitos de esquema.
+	res, err := resource.New(ctx,
+		resource.WithSchemaURL(semconv.SchemaURL),
+		resource.WithAttributes(
 			semconv.ServiceName("golang-observability"),
-			semconv.DeploymentEnvironment("delevopment"),
+			semconv.DeploymentEnvironmentNameKey.String("development"), // Corrigido de "delevopment"
 		),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	// 2. Configura o Exportador para a saída padrão.
-	// Este exportador gera o formato OTLP/JSON exato que você deseja.
+	// Configura o Exportador para a saída padrão.
 	logExporter, err := stdoutlog.New()
 	if err != nil {
 		panic(err)
 	}
 
-	// 3. Cria o LoggerProvider do OpenTelemetry.
+	// Cria o LoggerProvider do OpenTelemetry.
 	loggerProvider := sdklog.NewLoggerProvider(
 		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)),
 		sdklog.WithResource(res),
 	)
 
-	// 4. Define o LoggerProvider como global.
+	// Define o LoggerProvider como global.
 	global.SetLoggerProvider(loggerProvider)
 
-	// 5. Cria a nossa "ponte" que converte logs do slog para o formato OTel.
+	// Cria a nossa "ponte" que converte logs do slog para o formato OTel.
 	handler := &OtelHandler{
 		logger: loggerProvider.Logger("slog-handler"),
 	}
 
-	// 6. Retorna um logger slog que usa a nossa ponte e a função de shutdown.
+	// Retorna um logger slog que usa a nossa ponte e a função de shutdown.
 	logger := slog.New(handler)
 	shutdown := func() {
 		if err := loggerProvider.Shutdown(ctx); err != nil {
@@ -70,7 +72,6 @@ func (h *OtelHandler) Handle(ctx context.Context, rec slog.Record) error {
 
 	// Adiciona os atributos do slog como atributos do OTel.
 	rec.Attrs(func(a slog.Attr) bool {
-		// CORREÇÃO: Usar log.String em vez de attribute.String para criar o tipo correto de atributo.
 		record.AddAttributes(log.String(a.Key, a.Value.String()))
 		return true
 	})
