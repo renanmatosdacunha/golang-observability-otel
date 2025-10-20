@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
+	"log"
 	"log/slog"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/renanmatosdacunha/golang-observability-otel.git/api"
-	"github.com/renanmatosdacunha/golang-observability-otel.git/logs"
+	logs "github.com/renanmatosdacunha/golang-observability-otel.git/telemetry"
 )
 
 const (
@@ -16,23 +14,28 @@ const (
 )
 
 func main() {
-	// Cria um contexto que lida com sinais de interrupção (Ctrl+C) para um shutdown gracioso.
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
+	baselogger := logs.NewLogger()
+	logger := baselogger.With(
+		slog.Group("Resource",
+			slog.String("service.name", "golang-observability"),
+			slog.String("deployment.environment", "delevopment"),
+		),
+	)
 
-	// Inicializa o logger do OpenTelemetry através do nosso pacote de logs.
-	logger, shutdown := logs.InitOtelLogging(ctx)
-	// Garante que a função de shutdown seja chamada no final para enviar todos os logs em buffer.
-	defer shutdown()
-
-	// Injeta o logger no servidor.
 	server := api.NewServer(logger)
+	logger.Log(context.Background(), slog.LevelInfo,
+		"a iniciar o servidor", // Esta será a 'Body'
+		// Adiciona os campos customizados para corresponder ao formato desejado.
+		slog.Int("SeverityNumber", logs.GetSeverityNumber(slog.LevelInfo)),
+		slog.Group("Attributes",
+			slog.String("address", serverAddress),
+		),
+	)
 
-	logger.Info("a iniciar o servidor", slog.String("address", serverAddress))
+	//logger.Info("Start Service", slog.String("address:", serverAddress))
 
 	err := server.Start(serverAddress)
 	if err != nil {
-		logger.Error("não foi possível iniciar o servidor", slog.String("error", err.Error()))
-		os.Exit(1)
+		log.Fatal("Cannot start server", err)
 	}
 }
