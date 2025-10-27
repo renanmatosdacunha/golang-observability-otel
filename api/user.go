@@ -37,10 +37,11 @@ func (server *Server) GetUser(ctx *gin.Context) {
 	}
 
 	if req.Username != userOK.Username {
-		//server.logger.Error("user not found", slog.String("username:", req.Username))
-		//server.logger.Error("user not found:", req.Username)
 		logMessage := fmt.Sprintf("user not found, username: %s", req.Username)
-		server.logger.Error(logMessage) // Não passa mais atributos aqui.
+		server.logger.Error(logMessage,
+			slog.Int("Http-status-code", http.StatusNotFound),
+			slog.String("client-ip", ctx.ClientIP()),
+		)
 		ctx.JSON(http.StatusNotFound, "Error not found")
 		return
 	}

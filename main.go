@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -29,7 +30,8 @@ func main() {
 	defer shutdownLogs()
 	server := api.NewServer(logger)
 
-	logger.Info("a iniciar o servidor", slog.String("address", serverAddress))
+	logMessage := fmt.Sprintf("Start Service: %s", serverAddress)
+	logger.Info(logMessage)
 
 	err := server.Start(serverAddress)
 	if err != nil {
